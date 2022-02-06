@@ -1,0 +1,36 @@
+spring:
+  h2:
+    console:
+      path: /h2-console
+      enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: none
+
+    properties:
+      hibernate:
+        dialect: org.hibernate.spatial.dialect.h2geodb.GeoDBDialect
+  main:
+    banner-mode: off
+
+  datasource:
+    #url: jdbc:h2:tcp://localhost:9092/widgets
+    url: jdbc:h2:mem:widgets
+    username: sa
+    password: password
+    driverClassName: org.h2.Driver
+
+  flyway:
+    enabled: true
+
+widgets:
+  read-timeout-ms: 3000
+  write-timeout-ms: 5000
+  repository: h2
+  #repository: in-memory
+
+
+logging:
+  level:
+    org.hibernate: DEBUG
+    ru.ohapegor: DEBUG

@@ -1,0 +1,19 @@
+spring:
+  main:
+    banner-mode: off
+  datasource:
+    url: jdbc:h2:mem:widgets
+    username: sa
+    password: password
+    driverClassName: org.h2.Driver
+
+widgets:
+  read-timeout-ms: 3000
+  write-timeout-ms: 5000
+  repository: in-memory
+
+
+logging:
+  level:
+    #org.hibernate: DEBUG
+    ru.ohapegor: DEBUG
