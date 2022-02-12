@@ -10,9 +10,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import ru.ohapegor.widgets.TestObjectsFactory;
-import ru.ohapegor.widgets.dto.AreaFilter;
+import ru.ohapegor.widgets.model.SearchArea;
 import ru.ohapegor.widgets.dto.WidgetDTO;
-import ru.ohapegor.widgets.entity.WidgetEntity;
+import ru.ohapegor.widgets.model.WidgetEntity;
 import ru.ohapegor.widgets.repository.WidgetsRepository;
 import ru.ohapegor.widgets.service.WidgetsService;
 
@@ -184,32 +184,32 @@ abstract class AbstractWidgetsIntegrationTest {
 
     @Test
     void verifyAreaFilterFiltersCorrect() throws Exception {
-        int insideCount = 7;
-        int outsideCount = 15;
-        var areaFilter = new AreaFilter(0, 0, 100, 100);
+        int insideCount = 100;
+        int outsideCount = 500;
+        var searchArea = new SearchArea(0, 0, 1000, 1000);
 
-        var insideAreaWidgetsIds = Stream.generate(() -> TestObjectsFactory.randomWidgetInsideArea(areaFilter))
+        var insideAreaWidgetsIds = Stream.generate(() -> TestObjectsFactory.randomWidgetInsideArea(searchArea))
                 .limit(insideCount)
                 .map(service::create)
                 .map(WidgetEntity::getId)
                 .collect(Collectors.toSet());
 
-        Stream.generate(() -> TestObjectsFactory.randomWidgetOutsideArea(areaFilter))
+        Stream.generate(() -> TestObjectsFactory.randomWidgetOutsideArea(searchArea))
                 .limit(outsideCount)
                 .forEach(service::create);
 
         assertEquals(insideCount + outsideCount, repository.count());
 
-        var pageResult = mockMvc.perform(get("/api/v1/widgets")
-                        .queryParam("minX", String.valueOf(areaFilter.getMinX()))
-                        .queryParam("maxX", String.valueOf(areaFilter.getMaxX()))
-                        .queryParam("minY", String.valueOf(areaFilter.getMinY()))
-                        .queryParam("maxY", String.valueOf(areaFilter.getMaxY()))
+        var pageResult = mockMvc.perform(get("/api/v1/widgets?size="+insideCount)
+                        .queryParam("minX", String.valueOf(searchArea.getMinX()))
+                        .queryParam("maxX", String.valueOf(searchArea.getMaxX()))
+                        .queryParam("minY", String.valueOf(searchArea.getMinY()))
+                        .queryParam("maxY", String.valueOf(searchArea.getMaxY()))
                 )
                 .andExpect(status().isOk())
                 .andExpect(header().string("x-total-count", String.valueOf(insideCount)))
                 .andExpect(header().string("x-page-number", "0"))
-                .andExpect(header().string("x-page-size", "10"))
+                .andExpect(header().string("x-page-size", String.valueOf(insideCount)))
                 .andReturn();
 
         var widgetsList = getWidgetsListFromResult(pageResult);

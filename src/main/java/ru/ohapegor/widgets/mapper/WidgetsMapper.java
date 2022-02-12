@@ -3,7 +3,7 @@ package ru.ohapegor.widgets.mapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import ru.ohapegor.widgets.dto.WidgetDTO;
-import ru.ohapegor.widgets.entity.WidgetEntity;
+import ru.ohapegor.widgets.model.WidgetEntity;
 
 @Mapper(componentModel = "spring")
 public interface WidgetsMapper {

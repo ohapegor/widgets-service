@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    active: h2
   h2:
     console:
       path: /h2-console

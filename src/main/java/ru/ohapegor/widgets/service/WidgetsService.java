@@ -8,8 +8,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import ru.ohapegor.widgets.config.WidgetServiceProps;
-import ru.ohapegor.widgets.dto.AreaFilter;
-import ru.ohapegor.widgets.entity.WidgetEntity;
+import ru.ohapegor.widgets.model.SearchArea;
+import ru.ohapegor.widgets.model.WidgetEntity;
 import ru.ohapegor.widgets.exception.OperationTimeoutExceededException;
 import ru.ohapegor.widgets.exception.WidgetNotFoundException;
 import ru.ohapegor.widgets.repository.WidgetsRepository;
@@ -66,7 +66,9 @@ public class WidgetsService {
                 throw new OperationTimeoutExceededException("create  widget = " + widget);
             }
             ensureZIndex(widget);
-            return widgetsRepository.save(widget);
+            WidgetEntity cr = widgetsRepository.save(widget);
+        //    log.warn("created {}", widget);
+            return cr;
         } finally {
             if (writeLock.isHeldByCurrentThread()) {
                 writeLock.unlock();
@@ -95,7 +97,7 @@ public class WidgetsService {
     }
 
     @SneakyThrows
-    public Page<WidgetEntity> getPage(int page, int size, AreaFilter filter) {
+    public Page<WidgetEntity> getPage(int page, int size, SearchArea filter) {
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "z"));
         try {
             if (!readLock.tryLock(props.getWriteTimeoutMs(), TimeUnit.SECONDS)) {
@@ -116,17 +118,16 @@ public class WidgetsService {
     }
 
     private void shiftWidgets(int z) {
-        int currenZ = z;
-        Optional<WidgetEntity> conflictEntityOpt = widgetsRepository.findByZ(currenZ);
+        int currentZ = z;
+        Optional<WidgetEntity> conflictEntityOpt = widgetsRepository.findByZ(currentZ);
         List<WidgetEntity> updatedWidgets = new LinkedList<>();
         while (conflictEntityOpt.isPresent()) {
             WidgetEntity conflictEntity = conflictEntityOpt.get();
-            currenZ = nextZ(conflictEntity.getZ());
-            conflictEntity.setZ(currenZ);
+            currentZ = nextZ(conflictEntity.getZ());
+            conflictEntity.setZ(currentZ);
             updatedWidgets.add(conflictEntity);
-            conflictEntityOpt = widgetsRepository.findByZ(currenZ);
+            conflictEntityOpt = widgetsRepository.findByZ(currentZ);
         }
-        //saving only after we ensure all widgets can be set with nextZ
         widgetsRepository.saveAll(updatedWidgets);
     }
 

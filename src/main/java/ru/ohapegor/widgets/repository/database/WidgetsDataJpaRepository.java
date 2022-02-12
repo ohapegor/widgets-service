@@ -2,7 +2,7 @@ package ru.ohapegor.widgets.repository.database;
 
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.PagingAndSortingRepository;
-import ru.ohapegor.widgets.entity.WidgetEntity;
+import ru.ohapegor.widgets.model.WidgetEntity;
 
 import java.util.Optional;
 

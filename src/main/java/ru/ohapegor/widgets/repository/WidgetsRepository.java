@@ -2,8 +2,8 @@ package ru.ohapegor.widgets.repository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import ru.ohapegor.widgets.dto.AreaFilter;
-import ru.ohapegor.widgets.entity.WidgetEntity;
+import ru.ohapegor.widgets.model.SearchArea;
+import ru.ohapegor.widgets.model.WidgetEntity;
 
 import java.util.Optional;
 
@@ -23,7 +23,7 @@ public interface WidgetsRepository {
 
     void deleteAll();
 
-    Page<WidgetEntity> getPage(Pageable pageable, AreaFilter filter);
+    Page<WidgetEntity> getPage(Pageable pageable, SearchArea filter);
 
     long count();
 

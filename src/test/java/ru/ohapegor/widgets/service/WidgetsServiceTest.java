@@ -14,8 +14,8 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import ru.ohapegor.widgets.TestObjectsFactory;
 import ru.ohapegor.widgets.config.WidgetServiceProps;
-import ru.ohapegor.widgets.dto.AreaFilter;
-import ru.ohapegor.widgets.entity.WidgetEntity;
+import ru.ohapegor.widgets.model.SearchArea;
+import ru.ohapegor.widgets.model.WidgetEntity;
 import ru.ohapegor.widgets.repository.WidgetsRepository;
 
 import java.time.Duration;
@@ -110,8 +110,7 @@ class WidgetsServiceTest {
     }
 
     private Future<Boolean> submitGetPageTask() {
-        return executor.submit(() -> widgetsService.getPage(0, 10, new AreaFilter()).isEmpty());
+        return executor.submit(() -> widgetsService.getPage(0, 10, new SearchArea()).isEmpty());
     }
-
 
 }

@@ -21,9 +21,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import ru.ohapegor.widgets.dto.AreaFilter;
+import ru.ohapegor.widgets.model.SearchArea;
 import ru.ohapegor.widgets.dto.WidgetDTO;
-import ru.ohapegor.widgets.entity.WidgetEntity;
+import ru.ohapegor.widgets.model.WidgetEntity;
 import ru.ohapegor.widgets.mapper.WidgetsMapper;
 import ru.ohapegor.widgets.service.WidgetsService;
 
@@ -87,7 +87,7 @@ public class WidgetsController {
             @RequestParam(required = false) Integer maxX,
             @RequestParam(required = false) Integer maxY
     ) {
-        var areaFilter = AreaFilter.builder()
+        var areaFilter = SearchArea.builder()
                 .minX(minX).minY(minY).maxX(maxX).maxY(maxY)
                 .build();
 
@@ -153,7 +153,7 @@ public class WidgetsController {
         return ResponseEntity.noContent().build();
     }
 
-    private boolean isValid(AreaFilter areaFilter) {
+    private boolean isValid(SearchArea areaFilter) {
         if (areaFilter.getMinX() != null && areaFilter.getMaxX() != null && areaFilter.getMaxX() < areaFilter.getMinX()) {
             return false;
         }

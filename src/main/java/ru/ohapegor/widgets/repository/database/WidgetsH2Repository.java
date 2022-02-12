@@ -5,8 +5,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
-import ru.ohapegor.widgets.dto.AreaFilter;
-import ru.ohapegor.widgets.entity.WidgetEntity;
+import ru.ohapegor.widgets.model.SearchArea;
+import ru.ohapegor.widgets.model.WidgetEntity;
 import ru.ohapegor.widgets.repository.WidgetsRepository;
 
 import javax.persistence.EntityManager;
@@ -68,7 +68,7 @@ public class WidgetsH2Repository implements WidgetsRepository {
     }
 
     @Override
-    public Page<WidgetEntity> getPage(Pageable pageable, AreaFilter filter) {
+    public Page<WidgetEntity> getPage(Pageable pageable, SearchArea filter) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
 
         CriteriaQuery<WidgetEntity> widgetsQuery = cb.createQuery(WidgetEntity.class);
