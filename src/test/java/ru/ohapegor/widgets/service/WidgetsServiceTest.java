@@ -1,5 +1,6 @@
 package ru.ohapegor.widgets.service;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -53,7 +54,10 @@ class WidgetsServiceTest {
     private WidgetsService widgetsService;
 
     @Captor
-    private ArgumentCaptor<Iterable<WidgetEntity>> saveWidgetsCaptor;
+    private ArgumentCaptor<Iterable<WidgetEntity>> saveAllWidgetsCaptor;
+
+    @Captor
+    private ArgumentCaptor<WidgetEntity> saveWidgetCaptor;
 
     private int nOfThreads = 32;
     private ExecutorService executor = Executors.newFixedThreadPool(nOfThreads);
@@ -61,18 +65,22 @@ class WidgetsServiceTest {
 
     @Test
     void verifyCreationOfWidgetWithSameZCausesShifting() {
+        //test data preparation
         var testWidget1 = TestObjectsFactory.randomWidget();
         int initialZ = testWidget1.getZ();
         var testWidget2 = TestObjectsFactory.randomWidget();
         testWidget2.setZ(initialZ);
 
+        //mocks initialization
         when(repository.findByZ(testWidget1.getZ())).thenReturn(Optional.of(testWidget1));
         when(repository.existsByZ(initialZ)).thenReturn(true);
 
+        //testing method invocation
         widgetsService.create(testWidget2);
 
-        verify(repository, times(1)).saveAll(saveWidgetsCaptor.capture());
-        Iterator<WidgetEntity> capturedIterator = saveWidgetsCaptor.getValue().iterator();
+        //verifications
+        verify(repository, times(1)).saveAll(saveAllWidgetsCaptor.capture());
+        Iterator<WidgetEntity> capturedIterator = saveAllWidgetsCaptor.getValue().iterator();
         WidgetEntity captured = capturedIterator.next();
         assertFalse(capturedIterator.hasNext());
         assertEquals(initialZ + 1, captured.getZ());
@@ -100,7 +108,29 @@ class WidgetsServiceTest {
         var executionDuration = Duration.between(Instant.now(), start);
         var doubleReadDelayDuration = Duration.ofMillis(readDelayMS * 2);
         //verify that 32 reads with 32 threads execution time took less than 2 read delays
-        assertEquals(1,doubleReadDelayDuration.compareTo(executionDuration));
+        assertEquals(1, doubleReadDelayDuration.compareTo(executionDuration));
+    }
+
+    @Test
+    @DisplayName("verify updating widget without Z doesn't cause Z change if Z is already max")
+    void verifyUpdatingWidgetWithoutZ() {
+        //test data preparation
+        WidgetEntity entity = TestObjectsFactory.randomWidget();
+        int initialZ = entity.getZ();
+        WidgetEntity entityForUpdate = entity.clone();
+        entityForUpdate.setZ(null);
+
+        //mocks initialization
+        when(repository.getMaxZ()).thenReturn(initialZ);
+        when(repository.findById(entity.getId())).thenReturn(Optional.of(entity));
+
+        //testing method invocation
+        widgetsService.update(entityForUpdate);
+
+        //verifications
+        verify(repository, times(1)).save(saveWidgetCaptor.capture());
+        WidgetEntity captured = saveWidgetCaptor.getValue();
+        assertEquals(initialZ, captured.getZ());
     }
 
     private Future<Boolean> submitGetByIdTask() {

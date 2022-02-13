@@ -151,6 +151,27 @@ abstract class AbstractWidgetsIntegrationTest {
         assertEquals(testWidget.getId(), page.iterator().next().getId());
     }
 
+    @Test
+    void verifyWidgetWithout() throws Exception {
+        var testWidget = persistedRandomWidget();
+        var updatedWidget = TestObjectsFactory.randomWidget();
+        mockMvc.perform(put("/api/v1/widgets/" + testWidget.getId())
+                        .contentType(APPLICATION_JSON)
+                        .content(om.writeValueAsString(updatedWidget)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(testWidget.getId()))
+                .andExpect(jsonPath("$.height").value(updatedWidget.getHeight()))
+                .andExpect(jsonPath("$.width").value(updatedWidget.getWidth()))
+                .andExpect(jsonPath("$.x").value(updatedWidget.getX()))
+                .andExpect(jsonPath("$.y").value(updatedWidget.getY()))
+                .andExpect(jsonPath("$.z").value(updatedWidget.getZ()))
+                .andExpect(jsonPath("$.createdAt").isNotEmpty())
+                .andExpect(jsonPath("$.lastModifiedAt").isNotEmpty());
+
+        var page = repository.getPage(PageRequest.of(0, 10), new SearchArea());
+        assertEquals(1, page.getTotalElements());
+        assertEquals(testWidget.getId(), page.iterator().next().getId());
+    }
 
     @Test
     void verifyUpdateOfWidgetWithInvalidParamsRefusedWithBadRequest() throws Exception {

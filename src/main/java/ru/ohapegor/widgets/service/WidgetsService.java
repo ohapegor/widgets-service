@@ -68,7 +68,7 @@ public class WidgetsService {
             }
             ensureZIndex(widget);
             WidgetEntity cr = widgetsRepository.save(widget);
-           // log.warn("created {}", widget.getZ());
+            // log.warn("created {}", widget.getZ());
             return cr;
         } finally {
             if (writeLock.isHeldByCurrentThread()) {
@@ -85,7 +85,9 @@ public class WidgetsService {
             }
             WidgetEntity oldWidget = widgetsRepository.findById(updatedWidget.getId())
                     .orElseThrow(WidgetNotFoundException::new);
-            if (!Objects.equals(oldWidget.getZ(), updatedWidget.getZ())) {
+            if (updatedWidget.getZ() == null && oldWidget.getZ().equals(widgetsRepository.getMaxZ())) {
+                updatedWidget.setZ(oldWidget.getZ());
+            } else if (!Objects.equals(oldWidget.getZ(), updatedWidget.getZ())) {
                 ensureZIndex(updatedWidget);
             }
             updatedWidget.setCreatedAt(oldWidget.getCreatedAt());
@@ -129,12 +131,12 @@ public class WidgetsService {
             updatedWidgets.add(conflictEntity);
             conflictEntityOpt = widgetsRepository.findByZ(currentZ);
         }
-        List<Integer> updatedZ =  updatedWidgets.stream().map(WidgetEntity::getZ).collect(Collectors.toList());
+        List<Integer> updatedZ = updatedWidgets.stream().map(WidgetEntity::getZ).collect(Collectors.toList());
     /*    while (!updatedWidgets.isEmpty()){
             widgetsRepository.save(updatedWidgets.removeLast());
         }*/
         widgetsRepository.saveAll(updatedWidgets);
-       // log.warn(">>shifted from {}: {}", z, updatedZ);
+        // log.warn(">>shifted from {}: {}", z, updatedZ);
     }
 
     private int nextFreeZ(int z) {
