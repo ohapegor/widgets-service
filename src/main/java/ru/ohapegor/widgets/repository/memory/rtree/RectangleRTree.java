@@ -69,7 +69,8 @@ public class RectangleRTree<E extends HasId> {
         }
         TreeNode<E> parent = entryNode.getParent();
         if (!parent.removeChild(entryNode)) {
-            throw new IllegalStateException(">> failed to delete entryNode=" + entryNode + " from parent " + parent);
+            log.error("failed to delete entryNode={}  from parent={}", entryNode, parent);
+            throw new IllegalStateException("failed to delete entryNode");
         }
 
         condenseTree(parent);
@@ -79,18 +80,18 @@ public class RectangleRTree<E extends HasId> {
 
     private void condenseTree(TreeNode<E> node) {
         List<EntryNode<E>> nodesToReinsert = new LinkedList<>();
-            while (node != root) {
-                if (node.getChildNodes().size() < minEntries) {
-                    extractAllEntries(node, nodesToReinsert);
-                    TreeNode<E> parent = node.getParent();
-                    parent.removeChild(node);
-                    node = parent;
-                } else {
-                    tightenDimensions(node);
-                    node = node.getParent();
-                }
+        while (node != root) {
+            if (node.getChildNodes().size() < minEntries) {
+                extractAllEntries(node, nodesToReinsert);
+                TreeNode<E> parent = node.getParent();
+                parent.removeChild(node);
+                node = parent;
+            } else {
+                tightenDimensions(node);
+                node = node.getParent();
             }
-            nodesToReinsert.forEach(this::insert);
+        }
+        nodesToReinsert.forEach(this::insert);
     }
 
     private void extractAllEntries(TreeNode<E> node, List<EntryNode<E>> collector) {

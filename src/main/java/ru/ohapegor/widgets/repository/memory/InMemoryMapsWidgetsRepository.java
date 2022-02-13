@@ -6,7 +6,6 @@ import org.springframework.data.domain.Pageable;
 import ru.ohapegor.widgets.model.SearchArea;
 import ru.ohapegor.widgets.model.WidgetEntity;
 import ru.ohapegor.widgets.repository.WidgetsRepository;
-import ru.ohapegor.widgets.repository.memory.rtree.EntryNode;
 import ru.ohapegor.widgets.utils.WidgetUtils;
 
 import java.util.HashMap;
@@ -56,8 +55,6 @@ public class InMemoryMapsWidgetsRepository implements WidgetsRepository {
         } else {
             widgetsById.put(entity.getId(), entity);
             widgetsByZ.put(entity.getZ(), entity);
-            var entryNode = new EntryNode<>(entity);
-            entryNode.setDimensions(entity);
         }
         return entity.clone();
     }

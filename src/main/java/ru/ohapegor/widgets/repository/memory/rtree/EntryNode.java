@@ -16,17 +16,6 @@ public class EntryNode<E extends HasId> extends Node<E> {
     }
 
     @Override
-    public String toString() {
-        return "EntryNode{" +
-                "minX=" + getMinX() +
-                ", maxX=" + getMaxX() +
-                ", minY=" + getMinY() +
-                ", maxY=" + getMaxY() +
-                ", entry=" + entry +
-                '}';
-    }
-
-    @Override
     @SuppressWarnings("unchecked")
     public boolean equals(Object another) {
         if (another == null) {
@@ -38,5 +27,16 @@ public class EntryNode<E extends HasId> extends Node<E> {
         EntryNode<E> anotherEntry = (EntryNode<E>) another;
 
         return Objects.equals(entry.getId(), anotherEntry.getEntry().getId());
+    }
+
+    @Override
+    public String toString() {
+        return "EntryNode{" +
+                "minX=" + getMinX() +
+                ", maxX=" + getMaxX() +
+                ", minY=" + getMinY() +
+                ", maxY=" + getMaxY() +
+                ", entry=" + entry +
+                '}';
     }
 }

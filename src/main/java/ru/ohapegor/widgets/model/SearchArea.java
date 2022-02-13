@@ -17,10 +17,6 @@ public class SearchArea {
     private Integer maxX;
     private Integer maxY;
 
-    public boolean isClosed() {
-        return minX != null && minY != null && maxX != null && maxY != null;
-    }
-
     public boolean includes(Rectangle rectangle) {
         if (maxX != null && rectangle.getMaxX() > maxX) {
             return false;
@@ -42,7 +38,7 @@ public class SearchArea {
     }
 
     private boolean isOverlapByX(Rectangle rectangle) {
-        return Optional.ofNullable(maxX).map(maxX -> rectangle.getMinX() < maxX).orElse(true) &&
+            return Optional.ofNullable(maxX).map(maxX -> rectangle.getMinX() < maxX).orElse(true) &&
                 Optional.ofNullable(minX).map(minX -> rectangle.getMaxX() > minX).orElse(true);
     }
 

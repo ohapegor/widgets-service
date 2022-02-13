@@ -5,6 +5,7 @@ import ru.ohapegor.widgets.model.SearchArea;
 import ru.ohapegor.widgets.model.WidgetEntity;
 
 import java.util.Random;
+import java.util.UUID;
 
 public class TestObjectsFactory {
 
@@ -36,6 +37,16 @@ public class TestObjectsFactory {
         widget.setY(RandomUtils.nextInt(filter.getMinY(), filter.getMaxY()));
         widget.setHeight(RandomUtils.nextInt(1, filter.getMaxY() - widget.getY()));
         return widget;
+    }
+
+    public static WidgetEntity randomWidgetWithCoords(int minX, int minY, int maxX, int maxY) {
+        return WidgetEntity.builder()
+                .id(UUID.randomUUID().toString())
+                .x(minX)
+                .y(minY)
+                .width(maxX - minX)
+                .height(maxY - minY)
+                .build();
     }
 
     private static int randomIntOutsideRange(int min, int max) {
