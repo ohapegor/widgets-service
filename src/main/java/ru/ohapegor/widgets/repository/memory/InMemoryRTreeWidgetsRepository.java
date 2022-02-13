@@ -55,17 +55,11 @@ public class InMemoryRTreeWidgetsRepository implements WidgetsRepository {
              * and skip inserting entity which would cause expensive redistribution of elements inside indexing trees
              */
             boolean spacialIndexIsModified = WidgetUtils.isSpacialIndexModified(oldEntity, entity);
-            boolean zIndexModified = WidgetUtils.isZIndexModified(oldEntity, entity);
-            if (zIndexModified && Objects.equals(widgetsByZ.get(oldEntity.getZ()).getId(), oldEntity.getId())) {
-                widgetsByZ.remove(oldEntity.getZ());
-            }
             if (spacialIndexIsModified) {
                 spatialIndex.deleteEntry(oldEntity.getId(), oldEntity);
             }
             oldEntity.updateData(entity);
-            if (zIndexModified) {
-                widgetsByZ.put(oldEntity.getZ(), oldEntity);
-            }
+            widgetsByZ.put(oldEntity.getZ(), oldEntity);
             if (spacialIndexIsModified) {
                 var entryNode = new EntryNode<>(entity);
                 entryNode.setDimensions(entity);

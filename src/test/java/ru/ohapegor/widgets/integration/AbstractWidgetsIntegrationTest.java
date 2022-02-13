@@ -195,7 +195,7 @@ abstract class AbstractWidgetsIntegrationTest {
            Spacial search performance increased more than 5 times, but in cost of longer creation.
          */
         int insideCount = 100;
-        int outsideCount = 1000;
+        int outsideCount = 200;
 
         var searchArea = new SearchArea(0, 0, 1000, 1000);
 
