@@ -66,7 +66,6 @@ class WidgetsServiceTest {
         var testWidget2 = TestObjectsFactory.randomWidget();
         testWidget2.setZ(initialZ);
 
-        // doAnswer(new AnswersWithDelay(1000, new Returns("some-return-value"))).when(repository).save(any());
         when(repository.findByZ(testWidget1.getZ())).thenReturn(Optional.of(testWidget1));
         when(repository.existsByZ(initialZ)).thenReturn(true);
 

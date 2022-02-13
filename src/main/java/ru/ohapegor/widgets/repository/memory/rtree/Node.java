@@ -21,4 +21,6 @@ abstract class Node<E extends HasId> implements Rectangle {
         this.width = rectangle.getWidth();
         this.height = rectangle.getHeight();
     }
+
+
 }

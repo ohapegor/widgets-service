@@ -19,7 +19,7 @@ public class TestObjectsFactory {
     }
 
     public static int randomInt() {
-        return new Random().nextInt(100);
+        return RandomUtils.nextInt(1, 100);
     }
 
     public static WidgetEntity randomWidgetOutsideArea(SearchArea filter) {

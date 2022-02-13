@@ -2,6 +2,7 @@ package ru.ohapegor.widgets.repository.memory.rtree;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import ru.ohapegor.widgets.model.HasId;
 import ru.ohapegor.widgets.model.Rectangle;
 import ru.ohapegor.widgets.model.SearchArea;
@@ -13,11 +14,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
+@Slf4j
 public class RectangleRTree<E extends HasId> {
 
-    private int minEntries;
-    private int maxEntries;
+    private final int minEntries;
+    private final int maxEntries;
 
     private TreeNode<E> root;
 
@@ -43,8 +46,7 @@ public class RectangleRTree<E extends HasId> {
             return;
         }
         TreeNode<E> leaf = chooseLeaf(root, entryNode);
-        leaf.getChildNodes().add(entryNode);
-        entryNode.setParent(leaf);
+        leaf.addChild(entryNode);
         if (leaf.getChildNodes().size() > maxEntries) {
             TreeNode<E> newNode = splitNode(leaf);
             adjustTree(leaf, newNode);
@@ -62,8 +64,13 @@ public class RectangleRTree<E extends HasId> {
             return false;
         }
         EntryNode<E> entryNode = entryNodeOpt.get();
+        if (entryNode.getParent() == null) {
+            throw new IllegalStateException("found entry with null parent by id = " + id);
+        }
         TreeNode<E> parent = entryNode.getParent();
-        parent.removeChild(entryNode);
+        if (!parent.removeChild(entryNode)) {
+            throw new IllegalStateException(">> failed to delete entryNode=" + entryNode + " from parent " + parent);
+        }
 
         condenseTree(parent);
 
@@ -72,18 +79,18 @@ public class RectangleRTree<E extends HasId> {
 
     private void condenseTree(TreeNode<E> node) {
         List<EntryNode<E>> nodesToReinsert = new LinkedList<>();
-        while (node != root) {
-            if (node.getChildNodes().size() < minEntries) {
-                extractAllEntries(node, nodesToReinsert);
-                node.getParent().removeChild(node);
-            } else {
-                tightenDimensions(node);
+            while (node != root) {
+                if (node.getChildNodes().size() < minEntries) {
+                    extractAllEntries(node, nodesToReinsert);
+                    TreeNode<E> parent = node.getParent();
+                    parent.removeChild(node);
+                    node = parent;
+                } else {
+                    tightenDimensions(node);
+                    node = node.getParent();
+                }
             }
-            node = node.parent;
-        }
-        if (!nodesToReinsert.isEmpty()) {
             nodesToReinsert.forEach(this::insert);
-        }
     }
 
     private void extractAllEntries(TreeNode<E> node, List<EntryNode<E>> collector) {
@@ -123,13 +130,17 @@ public class RectangleRTree<E extends HasId> {
 
     private boolean isOverlap(Rectangle first, Rectangle second) {
         return first.getMinX() < second.getMaxX() && first.getMaxX() > second.getMinX() //overlap by X
-         &&  first.getMinY() < second.getMaxY() && first.getMaxY() > second.getMinY(); //overlap by Y
+                && first.getMinY() < second.getMaxY() && first.getMaxY() > second.getMinY(); //overlap by Y
     }
 
     private TreeNode<E> splitNode(TreeNode<E> origNode) {
         var seeds = linearPeekSeeds(origNode);
-        origNode.getChildNodes().remove(seeds.lowestNode);
-        origNode.getChildNodes().remove(seeds.highestNode);
+        if (!origNode.removeChild(seeds.lowestNode)) {
+            throw new IllegalStateException("remove lowestNode failed");
+        }
+        if (!origNode.removeChild(seeds.highestNode)) {
+            throw new IllegalStateException("remove lowestNode failed");
+        }
 
         LinkedList<Node<E>> childrenToRearrange = new LinkedList<>(origNode.getChildNodes());
         origNode.getChildNodes().clear();
@@ -167,7 +178,6 @@ public class RectangleRTree<E extends HasId> {
             preferredNode.addChild(child);
             tightenDimensions(preferredNode);
         }
-
         return newNode;
     }
 
@@ -188,51 +198,70 @@ public class RectangleRTree<E extends HasId> {
     }
 
     private SeparationByCoordinateResult<E> linearPeekSeeds(TreeNode<E> node) {
-        var separationByX = separationByX(node);
-        var separationByY = separationByY(node);
+        var separationByX = separationByX(node, new LinkedList<>());
+        var separationByY = separationByY(node, new LinkedList<>());
         return separationByX.normalizedSeparation > separationByY.normalizedSeparation ? separationByX : separationByY;
     }
 
-    private SeparationByCoordinateResult<E> separationByX(TreeNode<E> node) {
-        Node<E> lowestNode = null;
-        Node<E> highestNode = null;
+    private SeparationByCoordinateResult<E> separationByX(TreeNode<E> node, List<Node<E>> excludeNodes) {
+        if (node.getChildNodes().size() - excludeNodes.size() < 2) {
+            log.error("unable to resolve separationByX collision for node : {}", node);
+            throw new IllegalStateException("unable to resolve separationByX collision");
+        }
+        Node<E> lowestHighSideNode = null;
+        Node<E> highestLowSideNode = null;
         int highestSide = Integer.MIN_VALUE, highestLowSide = Integer.MIN_VALUE;
         int lowestSide = Integer.MAX_VALUE, lowestHighSide = Integer.MAX_VALUE;
         for (Node<E> child : node.getChildNodes()) {
+            if (excludeNodes.contains(child)) {
+                continue;
+            }
             if (child.getMinX() > highestLowSide) {
                 highestLowSide = child.getMinX();
-                highestNode = child;
+                highestLowSideNode = child;
             }
             if (child.getMaxX() < lowestHighSide) {
-                highestLowSide = child.getMaxX();
-                lowestNode = child;
+                lowestHighSide = child.getMaxX();
+                lowestHighSideNode = child;
             }
             if (child.getMaxX() > highestSide) {
                 highestSide = child.getMaxX();
             }
             if (child.getMinX() < lowestSide) {
-                lowestSide = child.getMinY();
+                lowestSide = child.getMinX();
             }
         }
+        if (lowestHighSideNode == highestLowSideNode) {
+            log.warn("separationByX collision \nnode={} \nhighestSide={} \nhighestLowSide={} \nlowestSide={} \nlowestHighSide={} \namong: {}",
+                    highestLowSideNode, highestSide, highestLowSide, lowestSide, lowestHighSide,
+                    node.getChildNodes().stream().map(Node::toString).collect(Collectors.joining("\n")));
+            excludeNodes.add(lowestHighSideNode);
+            return separationByX(node, excludeNodes);
+        }
         double separation = (highestLowSide - lowestHighSide) * 1.0 / (highestSide - lowestSide);
-        return new SeparationByCoordinateResult<>(
-                separation, lowestNode, highestNode
-        );
+        return new SeparationByCoordinateResult<>(separation, lowestHighSideNode, highestLowSideNode);
     }
 
-    private SeparationByCoordinateResult<E> separationByY(TreeNode<E> node) {
-        Node<E> lowestNode = null;
-        Node<E> highestNode = null;
+    private SeparationByCoordinateResult<E> separationByY(TreeNode<E> node, List<Node<E>> excludeNodes) {
+        if (node.getChildNodes().size() - excludeNodes.size() < 2) {
+            log.error("unable to resolve separationByX collision for node : {}", node);
+            throw new IllegalStateException("unable to resolve separationByX collision");
+        }
+        Node<E> lowestHighSideNode = null;
+        Node<E> highestLowSideNode = null;
         int highestSide = Integer.MIN_VALUE, highestLowSide = Integer.MIN_VALUE;
         int lowestSide = Integer.MAX_VALUE, lowestHighSide = Integer.MAX_VALUE;
         for (Node<E> child : node.getChildNodes()) {
+            if (excludeNodes.contains(child)) {
+                continue;
+            }
             if (child.getMinY() > highestLowSide) {
                 highestLowSide = child.getMinY();
-                highestNode = child;
+                highestLowSideNode = child;
             }
             if (child.getMaxY() < lowestHighSide) {
-                highestLowSide = child.getMaxY();
-                lowestNode = child;
+                lowestHighSide = child.getMaxY();
+                lowestHighSideNode = child;
             }
             if (child.getMaxY() > highestSide) {
                 highestSide = child.getMaxY();
@@ -241,10 +270,15 @@ public class RectangleRTree<E extends HasId> {
                 lowestSide = child.getMinY();
             }
         }
+        if (lowestHighSideNode == highestLowSideNode) {
+            log.error("separationByY collision \nnode={} \nhighestSide={} \nhighestLowSide={} \nlowestSide={} \nlowestHighSide={} \namong: {}",
+                    lowestHighSideNode, highestSide, highestLowSide, lowestSide, lowestHighSide,
+                    node.getChildNodes().stream().map(Node::toString).collect(Collectors.joining("\n")));
+            excludeNodes.add(lowestHighSideNode);
+            return separationByX(node, excludeNodes);
+        }
         double separation = (highestLowSide - lowestHighSide) * 1.0 / (highestSide - lowestSide);
-        return new SeparationByCoordinateResult<>(
-                separation, lowestNode, highestNode
-        );
+        return new SeparationByCoordinateResult<>(separation, lowestHighSideNode, highestLowSideNode);
     }
 
     private void adjustTree(TreeNode<E> first, TreeNode<E> second) {
@@ -285,7 +319,7 @@ public class RectangleRTree<E extends HasId> {
             child = childIterator.next();
             minX = Math.min(minX, child.getMinX());
             maxX = Math.max(maxX, child.getMaxX());
-            minY = Math.min(minY,child.getMinY());
+            minY = Math.min(minY, child.getMinY());
             maxY = Math.max(maxY, child.getMaxY());
         }
         node.setX(minX);

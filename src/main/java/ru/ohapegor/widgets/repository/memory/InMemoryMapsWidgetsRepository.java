@@ -17,8 +17,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Collectors;
 
-import static ru.ohapegor.widgets.utils.WidgetUtils.isZIndexModified;
-
 public class InMemoryMapsWidgetsRepository implements WidgetsRepository {
 
     private final Map<String, WidgetEntity> widgetsById = new ConcurrentHashMap<>();
@@ -41,20 +39,8 @@ public class InMemoryMapsWidgetsRepository implements WidgetsRepository {
             entity.setId(id);
         }
         entity.setLastModifiedAt(Instant.now());
-        WidgetEntity oldEntity = widgetsById.get(id);
-        if (oldEntity != null) {
-            boolean zIndexModified = isZIndexModified(oldEntity, entity);
-            if (zIndexModified) {
-                widgetsByZ.remove(oldEntity.getZ());
-            }
-            oldEntity.updateData(entity);
-            if (zIndexModified) {
-                widgetsByZ.put(oldEntity.getZ(), oldEntity);
-            }
-        } else {
-            widgetsById.put(entity.getId(), entity);
-            widgetsByZ.put(entity.getZ(), entity);
-        }
+        widgetsById.put(entity.getId(), entity);
+        widgetsByZ.put(entity.getZ(), entity);
         return entity.clone();
     }
 
@@ -89,8 +75,6 @@ public class InMemoryMapsWidgetsRepository implements WidgetsRepository {
 
     @Override
     public Page<WidgetEntity> getPage(Pageable pageable, SearchArea searchArea) {
-        System.out.println(">> by id size = "+ widgetsById.size());
-        System.out.println(">> by Z size = "+ widgetsByZ.size());
         List<WidgetEntity> widgetsMatchFilter = widgetsByZ.values()
                 .stream()
                 .filter(searchArea::includes)

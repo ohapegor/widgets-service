@@ -22,9 +22,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Collectors;
 
-import static ru.ohapegor.widgets.utils.WidgetUtils.isSpacialIndexModified;
-import static ru.ohapegor.widgets.utils.WidgetUtils.isZIndexModified;
-
 @Slf4j
 public class InMemoryRTreeWidgetsRepository implements WidgetsRepository {
 
@@ -52,10 +49,32 @@ public class InMemoryRTreeWidgetsRepository implements WidgetsRepository {
         entity.setLastModifiedAt(Instant.now());
         WidgetEntity oldEntity = widgetsById.get(id);
         if (oldEntity != null) {
-            /* if corresponding index not changed we can just update data in entity by reference
+            spatialIndex.deleteEntry(oldEntity.getId(), oldEntity);
+        }
+        widgetsById.put(entity.getId(), entity);
+        widgetsByZ.put(entity.getZ(), entity);
+        var entryNode = new EntryNode<>(entity);
+        entryNode.setDimensions(entity);
+        spatialIndex.insert(entryNode);
+        return entity.clone();
+    }
+
+    /*  @Override
+      public WidgetEntity save(WidgetEntity entity) {
+          if (entity.getZ() == null) {
+              throw new IllegalStateException("z number should not be null");
+          }
+          String id = entity.getId();
+          if (id == null) {
+              id = generateId();
+              entity.setId(id);
+          }
+          entity.setLastModifiedAt(Instant.now());
+          WidgetEntity oldEntity = widgetsById.get(id);
+          if (oldEntity != null) {
+              *//* if corresponding index not changed we can just update data in entity by reference
                and skip inserting entity which would cause expensive redistribution of elements inside indexing trees
-             */
-            boolean zIndexModified = isZIndexModified(oldEntity, entity);
+             *//*
             boolean spacialIndexIsModified = isSpacialIndexModified(oldEntity, entity);
             if (zIndexModified) {
                 widgetsByZ.remove(oldEntity.getZ());
@@ -81,7 +100,7 @@ public class InMemoryRTreeWidgetsRepository implements WidgetsRepository {
         }
         return entity.clone();
     }
-
+*/
     @Override
     public void deleteById(String id) {
         WidgetEntity widgetEntity = widgetsById.remove(id);
@@ -116,8 +135,6 @@ public class InMemoryRTreeWidgetsRepository implements WidgetsRepository {
 
     @Override
     public Page<WidgetEntity> getPage(Pageable pageable, SearchArea searchArea) {
-        System.out.println(">> by id size = "+ widgetsById.size());
-        System.out.println(">> by Z size = "+ widgetsByZ.size());
         List<WidgetEntity> widgetsMatchFilter = spatialIndex.search(searchArea);
 
         int size = widgetsMatchFilter.size();

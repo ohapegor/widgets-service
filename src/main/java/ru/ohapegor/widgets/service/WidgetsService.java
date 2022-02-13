@@ -8,10 +8,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import ru.ohapegor.widgets.config.WidgetServiceProps;
-import ru.ohapegor.widgets.model.SearchArea;
-import ru.ohapegor.widgets.model.WidgetEntity;
 import ru.ohapegor.widgets.exception.OperationTimeoutExceededException;
 import ru.ohapegor.widgets.exception.WidgetNotFoundException;
+import ru.ohapegor.widgets.model.SearchArea;
+import ru.ohapegor.widgets.model.WidgetEntity;
 import ru.ohapegor.widgets.repository.WidgetsRepository;
 
 import java.util.LinkedList;
@@ -20,6 +20,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -67,7 +68,7 @@ public class WidgetsService {
             }
             ensureZIndex(widget);
             WidgetEntity cr = widgetsRepository.save(widget);
-        //    log.warn("created {}", widget);
+           // log.warn("created {}", widget.getZ());
             return cr;
         } finally {
             if (writeLock.isHeldByCurrentThread()) {
@@ -120,7 +121,7 @@ public class WidgetsService {
     private void shiftWidgets(int z) {
         int currentZ = z;
         Optional<WidgetEntity> conflictEntityOpt = widgetsRepository.findByZ(currentZ);
-        List<WidgetEntity> updatedWidgets = new LinkedList<>();
+        LinkedList<WidgetEntity> updatedWidgets = new LinkedList<>();
         while (conflictEntityOpt.isPresent()) {
             WidgetEntity conflictEntity = conflictEntityOpt.get();
             currentZ = nextZ(conflictEntity.getZ());
@@ -128,7 +129,19 @@ public class WidgetsService {
             updatedWidgets.add(conflictEntity);
             conflictEntityOpt = widgetsRepository.findByZ(currentZ);
         }
+        List<Integer> updatedZ =  updatedWidgets.stream().map(WidgetEntity::getZ).collect(Collectors.toList());
+    /*    while (!updatedWidgets.isEmpty()){
+            widgetsRepository.save(updatedWidgets.removeLast());
+        }*/
         widgetsRepository.saveAll(updatedWidgets);
+       // log.warn(">>shifted from {}: {}", z, updatedZ);
+    }
+
+    private int nextFreeZ(int z) {
+        while (widgetsRepository.existsByZ(z)) {
+            z++;
+        }
+        return z;
     }
 
     private int nextZ(int z) {

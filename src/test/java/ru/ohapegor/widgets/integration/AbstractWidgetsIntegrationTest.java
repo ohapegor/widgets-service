@@ -185,7 +185,7 @@ abstract class AbstractWidgetsIntegrationTest {
     @Test
     void verifyAreaFilterFiltersCorrect() throws Exception {
         int insideCount = 100;
-        int outsideCount = 500;
+        int outsideCount = 200;
         var searchArea = new SearchArea(0, 0, 1000, 1000);
 
         var insideAreaWidgetsIds = Stream.generate(() -> TestObjectsFactory.randomWidgetInsideArea(searchArea))
