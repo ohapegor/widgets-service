@@ -7,6 +7,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import ru.ohapegor.widgets.TestObjectsFactory;
@@ -144,6 +145,10 @@ abstract class AbstractWidgetsIntegrationTest {
                 .andExpect(jsonPath("$.z").value(updatedWidget.getZ()))
                 .andExpect(jsonPath("$.createdAt").isNotEmpty())
                 .andExpect(jsonPath("$.lastModifiedAt").isNotEmpty());
+
+        var page = repository.getPage(PageRequest.of(0, 10), new SearchArea());
+        assertEquals(1, page.getTotalElements());
+        assertEquals(testWidget.getId(), page.iterator().next().getId());
     }
 
 

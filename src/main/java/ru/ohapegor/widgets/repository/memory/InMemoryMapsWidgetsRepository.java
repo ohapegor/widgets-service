@@ -6,12 +6,14 @@ import org.springframework.data.domain.Pageable;
 import ru.ohapegor.widgets.model.SearchArea;
 import ru.ohapegor.widgets.model.WidgetEntity;
 import ru.ohapegor.widgets.repository.WidgetsRepository;
+import ru.ohapegor.widgets.repository.memory.rtree.EntryNode;
+import ru.ohapegor.widgets.utils.WidgetUtils;
 
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -34,13 +36,29 @@ public class InMemoryMapsWidgetsRepository implements WidgetsRepository {
             throw new IllegalStateException("z number should not be null");
         }
         String id = entity.getId();
+        WidgetEntity oldEntity = null;
         if (id == null) {
             id = generateId();
             entity.setId(id);
+        } else {
+            oldEntity = widgetsById.get(id);
         }
-        entity.setLastModifiedAt(Instant.now());
-        widgetsById.put(entity.getId(), entity);
-        widgetsByZ.put(entity.getZ(), entity);
+        if (oldEntity != null) {
+            boolean zIndexModified = WidgetUtils.isZIndexModified(oldEntity, entity);
+            boolean zIndexNotOverridden = Objects.equals(widgetsByZ.get(oldEntity.getZ()).getId(), oldEntity.getId());
+            if (zIndexModified && zIndexNotOverridden) {
+                widgetsByZ.remove(oldEntity.getZ());
+            }
+            oldEntity.updateData(entity);
+            if (zIndexModified) {
+                widgetsByZ.put(oldEntity.getZ(), oldEntity);
+            }
+        } else {
+            widgetsById.put(entity.getId(), entity);
+            widgetsByZ.put(entity.getZ(), entity);
+            var entryNode = new EntryNode<>(entity);
+            entryNode.setDimensions(entity);
+        }
         return entity.clone();
     }
 

@@ -44,22 +44,32 @@ public class InMemoryRTreeWidgetsRepository implements WidgetsRepository {
             throw new IllegalStateException("z number should not be null");
         }
         String id = entity.getId();
+        WidgetEntity oldEntity = null;
         if (id == null) {
             id = generateId();
             entity.setId(id);
+        } else {
+            oldEntity = widgetsById.get(id);
         }
         entity.setLastModifiedAt(Instant.now());
-        WidgetEntity oldEntity = widgetsById.get(id);
         if (oldEntity != null) {
             /* if corresponding index not changed we can just update data in entity by reference
              * and skip inserting entity which would cause expensive redistribution of elements inside indexing trees
              */
             boolean spacialIndexIsModified = WidgetUtils.isSpacialIndexModified(oldEntity, entity);
+            boolean zIndexModified = WidgetUtils.isZIndexModified(oldEntity, entity);
+            // check additionally if entity in z index was overridden with by shifting
+            boolean zIndexNotOverridden = Objects.equals(widgetsByZ.get(oldEntity.getZ()).getId(), oldEntity.getId());
+            if (zIndexModified && zIndexNotOverridden) {
+                widgetsByZ.remove(oldEntity.getZ());
+            }
             if (spacialIndexIsModified) {
                 spatialIndex.deleteEntry(oldEntity.getId(), oldEntity);
             }
             oldEntity.updateData(entity);
-            widgetsByZ.put(oldEntity.getZ(), oldEntity);
+            if (zIndexModified) {
+                widgetsByZ.put(oldEntity.getZ(), oldEntity);
+            }
             if (spacialIndexIsModified) {
                 var entryNode = new EntryNode<>(entity);
                 entryNode.setDimensions(entity);
