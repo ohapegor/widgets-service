@@ -15,12 +15,10 @@ import ru.ohapegor.widgets.model.WidgetEntity;
 import ru.ohapegor.widgets.repository.WidgetsRepository;
 
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -131,19 +129,7 @@ public class WidgetsService {
             updatedWidgets.add(conflictEntity);
             conflictEntityOpt = widgetsRepository.findByZ(currentZ);
         }
-        List<Integer> updatedZ = updatedWidgets.stream().map(WidgetEntity::getZ).collect(Collectors.toList());
-    /*    while (!updatedWidgets.isEmpty()){
-            widgetsRepository.save(updatedWidgets.removeLast());
-        }*/
         widgetsRepository.saveAll(updatedWidgets);
-        // log.warn(">>shifted from {}: {}", z, updatedZ);
-    }
-
-    private int nextFreeZ(int z) {
-        while (widgetsRepository.existsByZ(z)) {
-            z++;
-        }
-        return z;
     }
 
     private int nextZ(int z) {
