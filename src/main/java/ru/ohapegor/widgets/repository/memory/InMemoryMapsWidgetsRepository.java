@@ -8,20 +8,20 @@ import ru.ohapegor.widgets.model.WidgetEntity;
 import ru.ohapegor.widgets.repository.WidgetsRepository;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Collectors;
 
 public class InMemoryMapsWidgetsRepository implements WidgetsRepository {
 
-    private final Map<String, WidgetEntity> widgetsById = new ConcurrentHashMap<>();
+    private final Map<String, WidgetEntity> widgetsById = new HashMap<>();
 
-    private final NavigableMap<Integer, WidgetEntity> widgetsByZ = new ConcurrentSkipListMap<>();
+    private final NavigableMap<Integer, WidgetEntity> widgetsByZ = new TreeMap<>();
 
     @Override
     public Optional<WidgetEntity> findById(String id) {

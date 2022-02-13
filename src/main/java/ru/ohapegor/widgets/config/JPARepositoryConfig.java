@@ -1,8 +1,8 @@
 package ru.ohapegor.widgets.config;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import ru.ohapegor.widgets.repository.WidgetsRepository;
 import ru.ohapegor.widgets.repository.database.WidgetsDataJpaRepository;
@@ -12,8 +12,7 @@ import javax.persistence.EntityManager;
 
 @Configuration
 @EnableJpaAuditing
-@Profile("h2")
-//@ConditionalOnProperty(value = "widgets.repository", havingValue = "h2")
+@ConditionalOnProperty(value = "widgets.repository", havingValue = "h2")
 public class JPARepositoryConfig {
 
     @Bean

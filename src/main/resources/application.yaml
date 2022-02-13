@@ -28,8 +28,9 @@ spring:
 widgets:
   read-timeout-ms: 3000
   write-timeout-ms: 5000
-  repository: h2
-  #repository: in-memory
+  repository: r-tree
+  #repository: maps
+  #repository: h2
 
 
 logging:

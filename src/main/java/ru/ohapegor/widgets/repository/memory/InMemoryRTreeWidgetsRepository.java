@@ -10,24 +10,26 @@ import ru.ohapegor.widgets.model.WidgetEntity;
 import ru.ohapegor.widgets.repository.WidgetsRepository;
 import ru.ohapegor.widgets.repository.memory.rtree.EntryNode;
 import ru.ohapegor.widgets.repository.memory.rtree.RectangleRTree;
+import ru.ohapegor.widgets.utils.WidgetUtils;
 
 import java.time.Instant;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Collectors;
 
 @Slf4j
 public class InMemoryRTreeWidgetsRepository implements WidgetsRepository {
 
-    private final Map<String, WidgetEntity> widgetsById = new ConcurrentHashMap<>();
+    private final Map<String, WidgetEntity> widgetsById = new HashMap<>();
 
-    private final NavigableMap<Integer, WidgetEntity> widgetsByZ = new ConcurrentSkipListMap<>();
+    private final NavigableMap<Integer, WidgetEntity> widgetsByZ = new TreeMap<>();
 
     private final RectangleRTree<WidgetEntity> spatialIndex = new RectangleRTree<>(2, 50);
 
@@ -49,34 +51,12 @@ public class InMemoryRTreeWidgetsRepository implements WidgetsRepository {
         entity.setLastModifiedAt(Instant.now());
         WidgetEntity oldEntity = widgetsById.get(id);
         if (oldEntity != null) {
-            spatialIndex.deleteEntry(oldEntity.getId(), oldEntity);
-        }
-        widgetsById.put(entity.getId(), entity);
-        widgetsByZ.put(entity.getZ(), entity);
-        var entryNode = new EntryNode<>(entity);
-        entryNode.setDimensions(entity);
-        spatialIndex.insert(entryNode);
-        return entity.clone();
-    }
-
-    /*  @Override
-      public WidgetEntity save(WidgetEntity entity) {
-          if (entity.getZ() == null) {
-              throw new IllegalStateException("z number should not be null");
-          }
-          String id = entity.getId();
-          if (id == null) {
-              id = generateId();
-              entity.setId(id);
-          }
-          entity.setLastModifiedAt(Instant.now());
-          WidgetEntity oldEntity = widgetsById.get(id);
-          if (oldEntity != null) {
-              *//* if corresponding index not changed we can just update data in entity by reference
-               and skip inserting entity which would cause expensive redistribution of elements inside indexing trees
-             *//*
-            boolean spacialIndexIsModified = isSpacialIndexModified(oldEntity, entity);
-            if (zIndexModified) {
+            /* if corresponding index not changed we can just update data in entity by reference
+             * and skip inserting entity which would cause expensive redistribution of elements inside indexing trees
+             */
+            boolean spacialIndexIsModified = WidgetUtils.isSpacialIndexModified(oldEntity, entity);
+            boolean zIndexModified = WidgetUtils.isZIndexModified(oldEntity, entity);
+            if (zIndexModified && Objects.equals(widgetsByZ.get(oldEntity.getZ()).getId(), oldEntity.getId())) {
                 widgetsByZ.remove(oldEntity.getZ());
             }
             if (spacialIndexIsModified) {
@@ -100,7 +80,8 @@ public class InMemoryRTreeWidgetsRepository implements WidgetsRepository {
         }
         return entity.clone();
     }
-*/
+
+
     @Override
     public void deleteById(String id) {
         WidgetEntity widgetEntity = widgetsById.remove(id);
