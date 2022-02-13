@@ -31,5 +31,4 @@ widgets:
 
 logging:
   level:
-    org.hibernate: DEBUG
     ru.ohapegor: DEBUG
