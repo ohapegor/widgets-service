@@ -8,7 +8,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import ru.ohapegor.widgets.config.WidgetServiceProps;
-import ru.ohapegor.widgets.exception.OperationTimeoutExceededException;
+import ru.ohapegor.widgets.exception.OperationLockTimeoutExceededException;
 import ru.ohapegor.widgets.exception.WidgetNotFoundException;
 import ru.ohapegor.widgets.model.SearchArea;
 import ru.ohapegor.widgets.model.WidgetEntity;
@@ -36,7 +36,7 @@ public class WidgetsService {
     public Optional<WidgetEntity> findById(String id) {
         try {
             if (!readLock.tryLock(props.getReadTimeoutMs(), TimeUnit.MILLISECONDS)) {
-                throw new OperationTimeoutExceededException("findById id = " + id);
+                throw new OperationLockTimeoutExceededException("findById id = " + id);
             }
             return widgetsRepository.findById(id);
         } finally {
@@ -48,7 +48,7 @@ public class WidgetsService {
     public void deleteById(String id) {
         try {
             if (!writeLock.tryLock(props.getWriteTimeoutMs(), TimeUnit.MILLISECONDS)) {
-                throw new OperationTimeoutExceededException("deleteById id = " + id);
+                throw new OperationLockTimeoutExceededException("deleteById id = " + id);
             }
             widgetsRepository.deleteById(id);
         } finally {
@@ -62,7 +62,7 @@ public class WidgetsService {
     public WidgetEntity create(WidgetEntity widget) {
         try {
             if (!writeLock.tryLock(props.getWriteTimeoutMs(), TimeUnit.MILLISECONDS)) {
-                throw new OperationTimeoutExceededException("create  widget = " + widget);
+                throw new OperationLockTimeoutExceededException("create  widget = " + widget);
             }
             ensureZIndex(widget);
             return widgetsRepository.save(widget);
@@ -77,7 +77,7 @@ public class WidgetsService {
     public WidgetEntity update(WidgetEntity updatedWidget) {
         try {
             if (!writeLock.tryLock(props.getWriteTimeoutMs(), TimeUnit.MILLISECONDS)) {
-                throw new OperationTimeoutExceededException("update  widget = " + updatedWidget);
+                throw new OperationLockTimeoutExceededException("update  widget = " + updatedWidget);
             }
             WidgetEntity oldWidget = widgetsRepository.findById(updatedWidget.getId())
                     .orElseThrow(WidgetNotFoundException::new);
@@ -100,7 +100,7 @@ public class WidgetsService {
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "z"));
         try {
             if (!readLock.tryLock(props.getWriteTimeoutMs(), TimeUnit.MILLISECONDS)) {
-                throw new OperationTimeoutExceededException("getAll pageable = " + pageable);
+                throw new OperationLockTimeoutExceededException("getAll pageable = " + pageable);
             }
             return widgetsRepository.getPage(pageable, filter);
         } finally {
