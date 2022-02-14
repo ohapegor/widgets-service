@@ -35,7 +35,7 @@ public class WidgetsService {
     @SneakyThrows
     public Optional<WidgetEntity> findById(String id) {
         try {
-            if (!readLock.tryLock(props.getReadTimeoutMs(), TimeUnit.SECONDS)) {
+            if (!readLock.tryLock(props.getReadTimeoutMs(), TimeUnit.MILLISECONDS)) {
                 throw new OperationTimeoutExceededException("findById id = " + id);
             }
             return widgetsRepository.findById(id);
@@ -47,7 +47,7 @@ public class WidgetsService {
     @SneakyThrows
     public void deleteById(String id) {
         try {
-            if (!writeLock.tryLock(props.getWriteTimeoutMs(), TimeUnit.SECONDS)) {
+            if (!writeLock.tryLock(props.getWriteTimeoutMs(), TimeUnit.MILLISECONDS)) {
                 throw new OperationTimeoutExceededException("deleteById id = " + id);
             }
             widgetsRepository.deleteById(id);
@@ -61,7 +61,7 @@ public class WidgetsService {
     @SneakyThrows
     public WidgetEntity create(WidgetEntity widget) {
         try {
-            if (!writeLock.tryLock(props.getWriteTimeoutMs(), TimeUnit.SECONDS)) {
+            if (!writeLock.tryLock(props.getWriteTimeoutMs(), TimeUnit.MILLISECONDS)) {
                 throw new OperationTimeoutExceededException("create  widget = " + widget);
             }
             ensureZIndex(widget);
@@ -76,7 +76,7 @@ public class WidgetsService {
     @SneakyThrows
     public WidgetEntity update(WidgetEntity updatedWidget) {
         try {
-            if (!writeLock.tryLock(props.getWriteTimeoutMs(), TimeUnit.SECONDS)) {
+            if (!writeLock.tryLock(props.getWriteTimeoutMs(), TimeUnit.MILLISECONDS)) {
                 throw new OperationTimeoutExceededException("update  widget = " + updatedWidget);
             }
             WidgetEntity oldWidget = widgetsRepository.findById(updatedWidget.getId())
@@ -99,7 +99,7 @@ public class WidgetsService {
     public Page<WidgetEntity> getPage(int page, int size, SearchArea filter) {
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "z"));
         try {
-            if (!readLock.tryLock(props.getWriteTimeoutMs(), TimeUnit.SECONDS)) {
+            if (!readLock.tryLock(props.getWriteTimeoutMs(), TimeUnit.MILLISECONDS)) {
                 throw new OperationTimeoutExceededException("getAll pageable = " + pageable);
             }
             return widgetsRepository.getPage(pageable, filter);
