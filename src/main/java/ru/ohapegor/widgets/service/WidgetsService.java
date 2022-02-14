@@ -65,9 +65,7 @@ public class WidgetsService {
                 throw new OperationTimeoutExceededException("create  widget = " + widget);
             }
             ensureZIndex(widget);
-            WidgetEntity cr = widgetsRepository.save(widget);
-            // log.warn("created {}", widget.getZ());
-            return cr;
+            return widgetsRepository.save(widget);
         } finally {
             if (writeLock.isHeldByCurrentThread()) {
                 writeLock.unlock();
