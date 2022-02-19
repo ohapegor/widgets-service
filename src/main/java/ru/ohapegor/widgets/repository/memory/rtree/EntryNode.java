@@ -6,6 +6,10 @@ import ru.ohapegor.widgets.model.HasId;
 
 import java.util.Objects;
 
+/**
+ * R-Tree node which holds link to entry object, link to parent node and has coordinates.
+ * Can be a child of leaf nodes only ({@link TreeNode} with leaf == true).
+ */
 @Getter
 @Setter
 public class EntryNode<E extends HasId> extends Node<E> {
@@ -13,6 +17,11 @@ public class EntryNode<E extends HasId> extends Node<E> {
 
     public EntryNode(E entry) {
         this.entry = Objects.requireNonNull(entry, "EntryNode should contain non-null entry");
+    }
+
+    @Override
+    public int hashCode() {
+        return entry.getId().hashCode();
     }
 
     @Override

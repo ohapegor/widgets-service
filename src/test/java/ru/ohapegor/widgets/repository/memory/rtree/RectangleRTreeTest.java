@@ -15,7 +15,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RectangleRTreeTest {
 
-    private RectangleRTree<WidgetEntity> tree = new RectangleRTree<>(2, 5);
+    private final int minEntries = 2;
+    private final int maxEntries = 5;
+
+    private RectangleRTree<WidgetEntity> tree = new RectangleRTree<>(minEntries, maxEntries);
 
     @Test
     void verifySearchReturnsValuesInsideArea() {
@@ -73,6 +76,26 @@ class RectangleRTreeTest {
         foundByArea = tree.search(searchArea);
         assertEquals(widgetsInsideArea.size(), foundByArea.size());
         foundByArea.forEach(widget -> assertTrue(widgetsInsideArea.containsKey(widget.getId())));
+    }
+
+    @Test
+    void verifyEntriesCanBeDeletedAfterNodeSplitting() {
+        int minX = -5, minY = -5, maxX = 5, maxY = 5;
+        List<WidgetEntity> sawedWidgets = Stream.generate(() ->
+                        TestObjectsFactory.randomWidgetWithCoords(minX, minY, maxX, maxY))
+                .limit(maxEntries + 1)
+                .peek(w -> {
+                    var node = new EntryNode<>(w);
+                    node.setDimensions(w);
+                    tree.insert(node);
+                }).collect(Collectors.toList());
+
+        var infiniteSearchArea = new SearchArea();
+
+        assertEquals(sawedWidgets.size(), tree.search(infiniteSearchArea).size());
+
+        sawedWidgets.forEach(w -> assertTrue(tree.deleteEntry(w.getId(), w)));
+        assertEquals(0, tree.search(infiniteSearchArea).size());
     }
 
 }

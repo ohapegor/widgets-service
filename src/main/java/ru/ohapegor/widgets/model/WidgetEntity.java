@@ -69,4 +69,5 @@ public class WidgetEntity implements HasId, Rectangle {
         clone.updateData(this);
         return clone;
     }
+
 }

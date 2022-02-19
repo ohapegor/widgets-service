@@ -8,11 +8,19 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * R-Tree node which holds array of another tree nodes {@link Node}.
+ *
+ */
 @Getter
 @Setter
 class TreeNode<E extends HasId> extends Node<E> {
 
-    private final boolean leaf;
+    /**
+     * if leaf property equals true - only {@link EntryNode} can be a child of this node
+     * if leaf property equals false - only {@link TreeNode} can be a child of this node
+     */
+    private boolean leaf;
     private final List<Node<E>> childNodes;
 
     TreeNode(boolean isLeaf) {
