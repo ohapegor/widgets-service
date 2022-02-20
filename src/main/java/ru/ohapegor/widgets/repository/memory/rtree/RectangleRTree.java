@@ -76,12 +76,13 @@ public class RectangleRTree<E extends HasId> {
 
     /**
      * Inserts entry node inside tree.
-     * Algorithm:
+     * <p>Algorithm:</p>
      * <p>1. [Find position for new record] Invoke {@link RectangleRTree#chooseLeaf} to select a leafNode</p>
      * <p>2. [Add record to leaf node] If leaf has room for another entry, install entry.
      * Otherwise, invoke {@link RectangleRTree#splitNode} to obtain newLeafNode and redistribute all the old entries
      * of leafNode and inserting entry between leafNode and newLeafNode.</p>
-     * <p>3. Invoke {@link RectangleRTree#adjustTree} on leafNode also passing newLeafNode if a split was performed.</p>
+     * <p>3. [Propagate changes upward] Invoke {@link RectangleRTree#adjustTree} on leafNode also passing newLeafNode
+     * if a split was performed.</p>
      *
      * @param entryNode - entry node with reference to storing object and dimensions
      */
@@ -104,11 +105,12 @@ public class RectangleRTree<E extends HasId> {
 
     /**
      * Remove index record from an R-tree.
-     * Algorithm:
-     * 1. [Find node containing record] Invoke {@link RectangleRTree#findEntry} to find entryNode, containing entry.
-     * Stop if not found.
-     * 2. [Delete record] Remove entry node from its parent.
-     * 3. [Propagate changes] Invoke {@link RectangleRTree#condenseTree} passing leaf node, in which deleted entry has been contained.
+     * <p>Algorithm:</p>
+     * <p>1. [Find node containing record] Invoke {@link RectangleRTree#findEntry} to find entryNode, containing entry.
+     * Stop if not found.</p>
+     * <p>2. [Delete record] Remove entry node from its parent.</p>
+     * <p>3. [Propagate changes] Invoke {@link RectangleRTree#condenseTree} passing leaf node,
+     * in which deleted entry has been contained.</p>
      *
      * @param id         - id of deleting entry
      * @param dimensions - rectangle where this entry expected to be.
@@ -141,13 +143,14 @@ public class RectangleRTree<E extends HasId> {
      * Given a leafNode from which entry has been deleted, eliminate node if it has too few entries and relocate
      * its entries. Propagate node elimination upward as necessary. Adjust all covering rectangles on the path
      * to the root, making them smaller if possible.
-     * 1. [Initialize] Set list of eliminated nodes to be empty.
-     * 2. [Eliminate under-full node] If node has fewer than minEntries delete node from its parent and add its entries to list.
-     * 3. [Adjust covering rectangle] If node has not been eliminated adjust its dimensions to tightly contain
-     * all child rectangles.
-     * 4. [Move up one level in tree] Set node as its parent and repeat from 2.
-     * 5. [Check if root becomes leaf] Set root as leaf if all nodes has been removed from non leaf root.
-     * 6. [Reinsert orphaned entries]
+     * <p>Algorithm:</p>
+     * <p>1. [Initialize] Set list of eliminated nodes to be empty.</p>
+     * <p>2. [Eliminate under-full node] If node has fewer than minEntries delete node from its parent and add its entries to list.</p>
+     * <p>3. [Adjust covering rectangle] If node has not been eliminated adjust its dimensions to tightly contain
+     * all child rectangles.</p>
+     * <p>4. [Move up one level in tree] Set node as its parent and repeat from 2.</p>
+     * <p>5. [Check if root becomes leaf] Set root as leaf if all nodes has been removed from non leaf root.</p>
+     * <p>6. [Reinsert orphaned entries]</p>
      */
     private void condenseTree(TreeNode<E> node) {
         List<EntryNode<E>> nodesToReinsert = new LinkedList<>(); //1 [Initialize]
@@ -211,16 +214,16 @@ public class RectangleRTree<E extends HasId> {
     /**
      * Given node with overflowed children limit {@param origNode} then create new node and distribute children
      * between them.
-     * Algorithm:
-     * 1. [Pick first entry for each group] Apply Algorithm {@link RectangleRTree#linearPeekSeeds} to choose
-     * two entries to be the first elements of the groups. Assign each to a group.
-     * 2. [Check If done] If all entries have been assigned, stop If one group has so few entries
+     * <p>Algorithm:</p>
+     * <p>1. [Pick first entry for each group] Apply Algorithm {@link RectangleRTree#linearPeekSeeds} to choose
+     * two entries to be the first elements of the groups. Assign each to a group.</p>
+     * <p>2. [Check If done] If all entries have been assigned, stop If one group has so few entries
      * that all the rest must be assigned to it m order for it to have
-     * the minimum number {@link RectangleRTree#minEntries}, assign them and stop.
-     * 3. [Select entry to assign] Invoke Algorithm {@link RectangleRTree#choosePreferredNode} to choose the next
+     * the minimum number {@link RectangleRTree#minEntries}, assign them and stop.</p>
+     * <p>3. [Select entry to assign] Invoke Algorithm {@link RectangleRTree#choosePreferredNode} to choose the next
      * entry to assign. Add it to the group whose covering rectangle will have to be enlarged least to accommodate it.
      * Resolve ties by adding the entry to the group with smaller area, then to the one with fewer entries,
-     * then to either. Repeat from [2].
+     * then to either. Repeat from [2].</p>
      *
      * @param origNode - node with overflowed children limit
      * @return newly created node
@@ -285,11 +288,11 @@ public class RectangleRTree<E extends HasId> {
 
     /**
      * Select node to put an entry in.
-     * Algorithm:
-     * 1. [Determine cost of adding entry in each node] Calculate the area increase required in the
-     * covering rectangle of node to include adding node.
-     * 2. [Find node with the greatest preference] Choose a node with area increase is lower
-     * or node with fewer elements if calculated  area increase is th same.
+     * <p>Algorithm:</p>
+     * <p>1. [Determine cost of adding entry in each node] Calculate the area increase required in the
+     * covering rectangle of node to include adding node.</p>
+     * <p>2. [Find node with the greatest preference] Choose a node with area increase is lower
+     * or node with fewer elements if calculated  area increase is th same.</p>
      *
      * @param first                - first node
      * @param second               - second node
@@ -312,13 +315,13 @@ public class RectangleRTree<E extends HasId> {
 
     /**
      * Select two entries among nodes children to be the first elements of the splitting groups.
-     * Algorithm:
-     * 1. [Find extreme rectangles along all dimensions] Along each dimension, find the entry whose rectangle has
+     * <p>Algorithm:<p/>
+     * <p>1. [Find extreme rectangles along all dimensions] Along each dimension, find the entry whose rectangle has
      * the highest low side, and the one with the lowest high side. Record the separation. If a collision happens
-     * when it is not possible to find 2 extreme rectangles, then fallback to selecting just firs and last rectangles.
-     * 2. [AdJust for shape of the rectangle cluster] Normalize the separations by dividing by the width of the entire
-     * set along the corresponding dimension.
-     * 3. [Select the most extreme pair] Choose the pair with the greatest normalized separation along any dimension.
+     * when it is not possible to find 2 extreme rectangles, then fallback to selecting just firs and last rectangles.</p>
+     * <p>2. [AdJust for shape of the rectangle cluster] Normalize the separations by dividing by the width of the entire
+     * set along the corresponding dimension.</p>
+     * <p>3. [Select the most extreme pair] Choose the pair with the greatest normalized separation along any dimension.</p>
      *
      * @param node - node in which children we are choosing seeds
      * @return object containing 2 chosen child nodes
@@ -430,16 +433,16 @@ public class RectangleRTree<E extends HasId> {
 
     /**
      * Ascend from a leaf node to the root, adjusting covering rectangles and propagating node splits as necessary.
-     * Algorithm:
-     * 1. [Initialize] set {@param first} node as leafNode (see {@link RectangleRTree#insert} step 1).
-     * Set {@param second} node as newLeafNode (see {@link RectangleRTree#insert} step 2).
-     * 2. [Adjust covering rectangles] Adjust nodes dimensions so that it tightly encloses all child rectangles.
-     * 3. [Check if done] If {@param first} is root, stop.
-     * 4. [Propagate node split upward] If {@param second} node is not null - partner of {@param first} node
+     * <p>Algorithm: </p>
+     * <p>1. [Initialize] set {@param first} node as leafNode (see {@link RectangleRTree#insert} step 1).
+     * Set {@param second} node as newLeafNode (see {@link RectangleRTree#insert} step 2).</p>
+     * <p>2. [Adjust covering rectangles] Adjust nodes dimensions so that it tightly encloses all child rectangles.</p>
+     * <p>3. [Check if done] If {@param first} is root, stop.</p>
+     * <p>4. [Propagate node split upward] If {@param second} node is not null - partner of {@param first} node
      * from earlier split. Then we should check if parent capacity is not exceeded limit.
-     * If so {@link RectangleRTree#splitNode} for parent is required to obtain newNode and redistribute parents children.
-     * 5. [Move up to next level] Set {@param first} as parent of {@param fists} node
-     * and {@param second} as newNode from 4 if a split occurred.
+     * If so {@link RectangleRTree#splitNode} for parent is required to obtain newNode and redistribute parents children.</p>
+     * <p>5. [Move up to next level] Set {@param first} as parent of {@param fists} node
+     * and {@param second} as newNode from 4 if a split occurred.</p>
      *
      * @param first  - not null tree node
      * @param second - nullable tree node
@@ -496,12 +499,12 @@ public class RectangleRTree<E extends HasId> {
 
     /**
      * Select a leaf node in which to place a new index entry.
-     * Algorithm:
-     * 1. [Initialize] Fist invocation shod be done passing {@link RectangleRTree#root} as {@param node}.
-     * 2. [Check leaf] If {@param node} is a leaf - return {@param node} as found leaf.
-     * 3. [Choose subtree] If {@param node} is not a leaf - find node in {@param node} children
-     * which is required minimum enlargement to include {@param entryDimensions}.
-     * 4. [Descend until a leaf is reached] Set {@param node} to be the child node found in [3]. Repeat from [2].
+     * <p>Algorithm:</p>
+     * <p>1. [Initialize] Fist invocation shod be done passing {@link RectangleRTree#root} as {@param node}.</p>
+     * <p>2. [Check leaf] If {@param node} is a leaf - return {@param node} as found leaf.</p>
+     * <p>3. [Choose subtree] If {@param node} is not a leaf - find node in {@param node} children
+     * which is required minimum enlargement to include {@param entryDimensions}.</p>
+     * <p>4. [Descend until a leaf is reached] Set {@param node} to be the child node found in [3]. Repeat from [2].</p>
      *
      * @param node            - node inside which search for leaf node is conducted
      * @param entryDimensions - dimensions of entry node
