@@ -77,10 +77,11 @@ public class RectangleRTree<E extends HasId> {
     /**
      * Inserts entry node inside tree.
      * Algorithm:
-     * 1. Find position for new record (Invoke {@link RectangleRTree#chooseLeaf} to select a leafNode)
-     * 2. If leaf has room for another entry, install entry. Otherwise, invoke {@link RectangleRTree#splitNode}
-     * to obtain newLeafNode and redistribute all the old entries of leafNode and inserting entry between leafNode and newLeafNode.
-     * 3. Invoke {@link RectangleRTree#adjustTree} on leafNode also passing newLeafNode if a split was performed.
+     * <p>1. [Find position for new record] Invoke {@link RectangleRTree#chooseLeaf} to select a leafNode</p>
+     * <p>2. [Add record to leaf node] If leaf has room for another entry, install entry.
+     * Otherwise, invoke {@link RectangleRTree#splitNode} to obtain newLeafNode and redistribute all the old entries
+     * of leafNode and inserting entry between leafNode and newLeafNode.</p>
+     * <p>3. Invoke {@link RectangleRTree#adjustTree} on leafNode also passing newLeafNode if a split was performed.</p>
      *
      * @param entryNode - entry node with reference to storing object and dimensions
      */
@@ -117,7 +118,7 @@ public class RectangleRTree<E extends HasId> {
         Objects.requireNonNull(id, "null id");
         Objects.requireNonNull(id, "null dimensions");
 
-        Optional<EntryNode<E>> entryNodeOpt = findEntry(root, id, dimensions); //1
+        Optional<EntryNode<E>> entryNodeOpt = findEntry(root, id, dimensions); //1 [Find node containing record]
         if (entryNodeOpt.isEmpty()) {
             return false;
         }
@@ -126,12 +127,12 @@ public class RectangleRTree<E extends HasId> {
             throw new IllegalStateException("found entry with null parent by id = " + id);
         }
         TreeNode<E> parent = entryNode.getParent();
-        if (!parent.removeChild(entryNode)) { //2
+        if (!parent.removeChild(entryNode)) { //2 [Delete record]
             log.error("failed to delete entryNode={}  from parent={}", entryNode, parent);
             throw new IllegalStateException("failed to delete entryNode");
         }
 
-        condenseTree(parent); //3
+        condenseTree(parent); //3 [Propagate changes]
 
         return true;
     }
@@ -149,22 +150,22 @@ public class RectangleRTree<E extends HasId> {
      * 6. [Reinsert orphaned entries]
      */
     private void condenseTree(TreeNode<E> node) {
-        List<EntryNode<E>> nodesToReinsert = new LinkedList<>(); //1
+        List<EntryNode<E>> nodesToReinsert = new LinkedList<>(); //1 [Initialize]
         while (node != root) {
-            if (node.getChildNodes().size() < minEntries) { //2
+            if (node.getChildNodes().size() < minEntries) { //2 [Eliminate under-full node]
                 extractAllEntries(node, nodesToReinsert);
                 TreeNode<E> parent = node.getParent();
                 parent.removeChild(node);
-                node = parent; //4
+                node = parent; //4 [Move up one level in tree]
             } else {
-                tightenDimensions(node); //3
-                node = node.getParent(); //4
+                tightenDimensions(node); //3 [Adjust covering rectangle]
+                node = node.getParent(); //4 [Move up one level in tree]
             }
         }
-        if (!root.isLeaf() && root.getChildNodes().size() == 0) {
+        if (!root.isLeaf() && root.getChildNodes().size() == 0) { //5 [Check if root becomes leaf]
             root = new TreeNode<>(true);
         }
-        nodesToReinsert.forEach(this::insert); //5
+        nodesToReinsert.forEach(this::insert); //5 [Reinsert orphaned entries]
     }
 
     private void extractAllEntries(TreeNode<E> node, List<EntryNode<E>> collector) {
@@ -207,15 +208,34 @@ public class RectangleRTree<E extends HasId> {
                 && first.getMinY() < second.getMaxY() && first.getMaxY() > second.getMinY(); //overlap by Y
     }
 
+    /**
+     * Given node with overflowed children limit {@param origNode} then create new node and distribute children
+     * between them.
+     * Algorithm:
+     * 1. [Pick first entry for each group] Apply Algorithm {@link RectangleRTree#linearPeekSeeds} to choose
+     * two entries to be the first elements of the groups. Assign each to a group.
+     * 2. [Check If done] If all entries have been assigned, stop If one group has so few entries
+     * that all the rest must be assigned to it m order for it to have
+     * the minimum number {@link RectangleRTree#minEntries}, assign them and stop.
+     * 3. [Select entry to assign] Invoke Algorithm {@link RectangleRTree#choosePreferredNode} to choose the next
+     * entry to assign. Add it to the group whose covering rectangle will have to be enlarged least to accommodate it.
+     * Resolve ties by adding the entry to the group with smaller area, then to the one with fewer entries,
+     * then to either. Repeat from [2].
+     *
+     * @param origNode - node with overflowed children limit
+     * @return newly created node
+     */
     private TreeNode<E> splitNode(TreeNode<E> origNode) {
+        //1 [Pick first entry for each group] choose two entries
         var seeds = linearPeekSeeds(origNode);
         if (!origNode.removeChild(seeds.lowestNode)) {
             throw new IllegalStateException("remove lowestNode failed");
         }
         if (!origNode.removeChild(seeds.highestNode)) {
-            throw new IllegalStateException("remove lowestNode failed");
+            throw new IllegalStateException("remove highestNode failed");
         }
 
+        //1 origNode becomes the first group, evicting all children to array
         LinkedList<Node<E>> childrenToRearrange = new LinkedList<>(origNode.getChildNodes());
         origNode.getChildNodes().clear();
 
@@ -226,15 +246,18 @@ public class RectangleRTree<E extends HasId> {
             parent.addChild(origNode);
         }
 
+        //1 Create second group
         TreeNode<E> newNode = new TreeNode<>(origNode.isLeaf());
         parent.addChild(newNode);
 
+        //1 Assign chosen entries to groups
         origNode.addChild(seeds.lowestNode);
         newNode.addChild(seeds.highestNode);
 
         tightenDimensions(origNode);
         tightenDimensions(newNode);
 
+        //2. [Check If done]
         while (!childrenToRearrange.isEmpty()) {
             int remainingSize = childrenToRearrange.size();
             if (shouldAddAllRemainingToMatchMinSize(origNode, remainingSize)) {
@@ -248,6 +271,7 @@ public class RectangleRTree<E extends HasId> {
                 break;
             }
             Node<E> child = childrenToRearrange.remove();
+            //3. [Select entry to assign]
             TreeNode<E> preferredNode = choosePreferredNode(origNode, newNode, child);
             preferredNode.addChild(child);
             tightenDimensions(preferredNode);
@@ -255,9 +279,28 @@ public class RectangleRTree<E extends HasId> {
         return newNode;
     }
 
-    private TreeNode<E> choosePreferredNode(TreeNode<E> first, TreeNode<E> second, Rectangle insertingNode) {
-        BigDecimal enlargement1 = calculateRequiredEnlargement(first, insertingNode);
-        BigDecimal enlargement2 = calculateRequiredEnlargement(second, insertingNode);
+    private boolean shouldAddAllRemainingToMatchMinSize(TreeNode<E> node, int remainingSize) {
+        return remainingSize <= minEntries && node.getChildNodes().size() + remainingSize == minEntries;
+    }
+
+    /**
+     * Select node to put an entry in.
+     * Algorithm:
+     * 1. [Determine cost of adding entry in each node] Calculate the area increase required in the
+     * covering rectangle of node to include adding node.
+     * 2. [Find node with the greatest preference] Choose a node with area increase is lower
+     * or node with fewer elements if calculated  area increase is th same.
+     *
+     * @param first                - first node
+     * @param second               - second node
+     * @param addingNodeDimensions - dimension of adding node
+     * @return chosen node
+     */
+    private TreeNode<E> choosePreferredNode(TreeNode<E> first, TreeNode<E> second, Rectangle addingNodeDimensions) {
+        // [1]
+        BigDecimal enlargement1 = calculateRequiredEnlargement(first, addingNodeDimensions);
+        BigDecimal enlargement2 = calculateRequiredEnlargement(second, addingNodeDimensions);
+        // [2]
         int comparison = enlargement1.compareTo(enlargement2);
         if (comparison < 0) {
             return first;
@@ -267,13 +310,23 @@ public class RectangleRTree<E extends HasId> {
         return first.getChildNodes().size() < second.getChildNodes().size() ? first : second;
     }
 
-    private boolean shouldAddAllRemainingToMatchMinSize(TreeNode<E> node, int remainingSize) {
-        return remainingSize <= minEntries && node.getChildNodes().size() + remainingSize == minEntries;
-    }
-
+    /**
+     * Select two entries among nodes children to be the first elements of the splitting groups.
+     * Algorithm:
+     * 1. [Find extreme rectangles along all dimensions] Along each dimension, find the entry whose rectangle has
+     * the highest low side, and the one with the lowest high side. Record the separation. If a collision happens
+     * when it is not possible to find 2 extreme rectangles, then fallback to selecting just firs and last rectangles.
+     * 2. [AdJust for shape of the rectangle cluster] Normalize the separations by dividing by the width of the entire
+     * set along the corresponding dimension.
+     * 3. [Select the most extreme pair] Choose the pair with the greatest normalized separation along any dimension.
+     *
+     * @param node - node in which children we are choosing seeds
+     * @return object containing 2 chosen child nodes
+     */
     private SeparationByCoordinateResult<E> linearPeekSeeds(TreeNode<E> node) {
         var separationByX = separationByX(node, new LinkedList<>());
         var separationByY = separationByY(node, new LinkedList<>());
+        //3 [Select the most extreme pair]
         return separationByX.normalizedSeparation > separationByY.normalizedSeparation ? separationByX : separationByY;
     }
 
@@ -283,6 +336,7 @@ public class RectangleRTree<E extends HasId> {
         int highestSide = Integer.MIN_VALUE, highestLowSide = Integer.MIN_VALUE;
         int lowestSide = Integer.MAX_VALUE, lowestHighSide = Integer.MAX_VALUE;
         if (node.getChildNodes().size() - excludeNodes.size() >= minEntries) {
+            //1. [Find extreme rectangles along all dimensions]
             for (Node<E> child : node.getChildNodes()) {
                 if (excludeNodes.contains(child)) {
                     continue;
@@ -310,6 +364,10 @@ public class RectangleRTree<E extends HasId> {
                 return separationByX(node, excludeNodes);
             }
         } else {
+            /*
+             Fallback logic for handling collisions, when highestLowSideNode and lowestHighSideNode are pointing to the same node.
+             May happen when all child nodes have the same dimensions.
+             */
             log.warn("unable to resolve separationByX collision for node : {}, returning just first and last nodes", node);
             lowestHighSideNode = node.getChildNodes().get(0);
             lowestHighSide = lowestHighSideNode.getMaxX();
@@ -318,6 +376,7 @@ public class RectangleRTree<E extends HasId> {
             highestSide = node.getChildNodes().stream().map(Node::getMaxX).max(Comparator.naturalOrder()).get();
             lowestSide = node.getChildNodes().stream().map(Node::getMinX).min(Comparator.naturalOrder()).get();
         }
+        //2. [AdJust for shape of the rectangle cluster]
         double separation = (highestLowSide - lowestHighSide) * 1.0 / (highestSide - lowestSide);
         return new SeparationByCoordinateResult<>(separation, lowestHighSideNode, highestLowSideNode);
     }
@@ -328,6 +387,7 @@ public class RectangleRTree<E extends HasId> {
         int highestSide = Integer.MIN_VALUE, highestLowSide = Integer.MIN_VALUE;
         int lowestSide = Integer.MAX_VALUE, lowestHighSide = Integer.MAX_VALUE;
         if (node.getChildNodes().size() - excludeNodes.size() >= minEntries) {
+            //1. [Find extreme rectangles along all dimensions]
             for (Node<E> child : node.getChildNodes()) {
                 if (excludeNodes.contains(child)) {
                     continue;
@@ -363,6 +423,7 @@ public class RectangleRTree<E extends HasId> {
             highestSide = node.getChildNodes().stream().map(Node::getMaxY).max(Comparator.naturalOrder()).get();
             lowestSide = node.getChildNodes().stream().map(Node::getMinY).min(Comparator.naturalOrder()).get();
         }
+        //2. [AdJust for shape of the rectangle cluster]
         double separation = (highestLowSide - lowestHighSide) * 1.0 / (highestSide - lowestSide);
         return new SeparationByCoordinateResult<>(separation, lowestHighSideNode, highestLowSideNode);
     }
@@ -384,12 +445,13 @@ public class RectangleRTree<E extends HasId> {
      * @param second - nullable tree node
      */
     private void adjustTree(TreeNode<E> first, TreeNode<E> second) {
-        //2
+        //2 [Adjust covering rectangles]
         tightenDimensions(first);
         if (second != null) {
             tightenDimensions(second);
         }
-        if (first == root) { //3
+        //3 [Check if done]
+        if (first == root) {
             if (second != null) {
                 root = new TreeNode<>(false);
                 root.addChild(first);
@@ -398,11 +460,11 @@ public class RectangleRTree<E extends HasId> {
             }
             return;
         }
-        if (second != null && first.getParent().getChildNodes().size() > maxEntries) { //4
+        if (second != null && first.getParent().getChildNodes().size() > maxEntries) { //4 [Propagate node split upward]
             TreeNode<E> newNode = splitNode(first.getParent());
-            adjustTree(first.getParent(), newNode); //5
+            adjustTree(first.getParent(), newNode); //5 [Move up to next level]
         } else {
-            adjustTree(first.getParent(), null); //5
+            adjustTree(first.getParent(), null); //5 [Move up to next level]
         }
     }
 
@@ -439,19 +501,19 @@ public class RectangleRTree<E extends HasId> {
      * 2. [Check leaf] If {@param node} is a leaf - return {@param node} as found leaf.
      * 3. [Choose subtree] If {@param node} is not a leaf - find node in {@param node} children
      * which is required minimum enlargement to include {@param entryDimensions}.
-     * 4. [Descend until a leaf is reached] Set {@param node} to be the child node found in 3. Repeat from 2.
+     * 4. [Descend until a leaf is reached] Set {@param node} to be the child node found in [3]. Repeat from [2].
      *
      * @param node            - node inside which search for leaf node is conducted
      * @param entryDimensions - dimensions of entry node
      * @return leaf node matching dimensions
      */
     private TreeNode<E> chooseLeaf(TreeNode<E> node, Rectangle entryDimensions) {
-        if (node.isLeaf()) {
+        if (node.isLeaf()) { //2 [Check leaf]
             return node;
         }
         BigDecimal minEnlargement = null;
         Node<E> minEnlargementNode = null;
-        for (Node<E> child : node.getChildNodes()) {
+        for (Node<E> child : node.getChildNodes()) { //3 [Choose subtree]
             BigDecimal enlargement = calculateRequiredEnlargement(child, entryDimensions);
             if (minEnlargement == null || enlargement.compareTo(minEnlargement) < 0) {
                 minEnlargement = enlargement;
@@ -459,7 +521,7 @@ public class RectangleRTree<E extends HasId> {
             }
         }
         TreeNode<E> chosenNode = (TreeNode<E>) minEnlargementNode;
-        return chooseLeaf(chosenNode, entryDimensions);
+        return chooseLeaf(chosenNode, entryDimensions); //4 [Descend until a leaf is reached]
     }
 
     /**
