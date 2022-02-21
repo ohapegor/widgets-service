@@ -114,7 +114,7 @@ public class RectangleRTree<E extends HasId> {
      *
      * @param id         - id of deleting entry
      * @param dimensions - rectangle where this entry expected to be.
-     * @return if entry is actually was deleted
+     * @return true if entry is actually has been deleted
      */
     public boolean deleteEntry(String id, Rectangle dimensions) {
         Objects.requireNonNull(id, "null id");
