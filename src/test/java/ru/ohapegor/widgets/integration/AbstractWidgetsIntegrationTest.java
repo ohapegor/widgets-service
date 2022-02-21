@@ -213,11 +213,14 @@ abstract class AbstractWidgetsIntegrationTest {
     @Test
     void verifySpacialFilterWorksCorrect() throws Exception {
         /* H2 repository is very slow compared in memory implementations, do no test high counts with it.
-           To see search performance increase in search when switching from simple maps implementation with
+           To see search performance increase when switching from simple maps implementation with
            linear search complexity to r-tree index with logarithmic search complexity better to set higher counts.
            On my personal machine is set:
-           insideCount = 500 (creation took PT13.4689993S | search time took PT0.1079679S)
-           outsideCount = 10000 (creation took PT18.0180287S | search took PT0.0190027S)
+           insideCount = 500
+           outsideCount = 10000
+           Results:
+           maps - (creation took PT13.4689993S | search time took PT0.1079679S)
+           r-tree - (creation took PT18.0180287S | search took PT0.0190027S)
            Spacial search performance increased more than 5 times, but in cost of longer creation.
          */
         int insideCount = 100;
