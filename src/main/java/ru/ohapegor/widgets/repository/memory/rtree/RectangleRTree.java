@@ -80,7 +80,7 @@ public class RectangleRTree<E extends HasId> {
      * <p>1. [Find position for new record] Invoke {@link RectangleRTree#chooseLeaf} to select a leafNode</p>
      * <p>2. [Add record to leaf node] If leaf has room for another entry, install entry.
      * Otherwise, invoke {@link RectangleRTree#splitNode} to obtain newLeafNode and redistribute all the old entries
-     * of leafNode and inserting entry between leafNode and newLeafNode.</p>
+     * of leafNode inserting entry between leafNode and newLeafNode.</p>
      * <p>3. [Propagate changes upward] Invoke {@link RectangleRTree#adjustTree} on leafNode also passing newLeafNode
      * if a split was performed.</p>
      *
@@ -92,13 +92,16 @@ public class RectangleRTree<E extends HasId> {
             root.addChild(entryNode);
             return;
         }
+        //1. [Find position for new record]
         TreeNode<E> leafNode = chooseLeaf(root, entryNode);
+        //2. [Add record to leaf node]
         leafNode.addChild(entryNode);
         if (leafNode.getChildNodes().size() > maxEntries) {
-            //if node children count exceeded max of children, then we should
             TreeNode<E> newLeafNode = splitNode(leafNode);
+            //3. [Propagate changes upward]
             adjustTree(leafNode, newLeafNode);
         } else {
+            //3. [Propagate changes upward]
             adjustTree(leafNode, null);
         }
     }
