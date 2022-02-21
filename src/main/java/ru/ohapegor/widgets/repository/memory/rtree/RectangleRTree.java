@@ -92,17 +92,13 @@ public class RectangleRTree<E extends HasId> {
             root.addChild(entryNode);
             return;
         }
-        //1. [Find position for new record]
-        TreeNode<E> leafNode = chooseLeaf(root, entryNode);
-        //2. [Add record to leaf node]
-        leafNode.addChild(entryNode);
+        TreeNode<E> leafNode = chooseLeaf(root, entryNode);  //1. [Find position for new record]
+        leafNode.addChild(entryNode);  //2. [Add record to leaf node]
         if (leafNode.getChildNodes().size() > maxEntries) {
             TreeNode<E> newLeafNode = splitNode(leafNode);
-            //3. [Propagate changes upward]
-            adjustTree(leafNode, newLeafNode);
+            adjustTree(leafNode, newLeafNode);  //3. [Propagate changes upward]
         } else {
-            //3. [Propagate changes upward]
-            adjustTree(leafNode, null);
+            adjustTree(leafNode, null);  //3. [Propagate changes upward]
         }
     }
 
