@@ -28,7 +28,7 @@ public class RectangleRTree<E extends HasId> {
 
     /**
      * minimum count of nodes one {@link TreeNode} can hold in its childNodes list,
-     * except it is only one node (parent) in r-tree (tree size < minNodes)
+     * except it is the only one node (root) in r-tree (tree size < minNodes)
      */
     private final int minEntries;
 
